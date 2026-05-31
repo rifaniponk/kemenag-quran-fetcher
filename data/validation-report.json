@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2026-05-31T09:40:26.659Z",
+  "quranComBaseUrl": "https://api.quran.com/api/v4",
+  "localFile": "/Users/rifanfauzi/projects/surah-planner/research/kemenag-quran-fetcher/data/all-ayahs.json",
+  "requestedSurahStart": 1,
+  "requestedSurahEnd": 1,
+  "pass": true,
+  "comparison": {
+    "counts": {
+      "local": 7,
+      "quranCom": 7,
+      "expected": 7
+    },
+    "localMissingFromQuranCom": [],
+    "localExtraAgainstQuranCom": [],
+    "localMissingFromStaticExpected": [],
+    "localExtraAgainstStaticExpected": [],
+    "localDuplicateKeys": [],
+    "quranComDuplicateKeys": []
+  }
+}

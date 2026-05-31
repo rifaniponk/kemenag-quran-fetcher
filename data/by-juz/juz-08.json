@@ -1,0 +1,10 @@
+{
+  "meta": {
+    "source": "https://web-api.qurankemenag.net/quran-ayah",
+    "generatedAt": "2026-05-31T09:40:26.167Z",
+    "juz": 8,
+    "ayahCount": 0,
+    "sortOrder": "juz, page, surah_id, ayah"
+  },
+  "data": []
+}

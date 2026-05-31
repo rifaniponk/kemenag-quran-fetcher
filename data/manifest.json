@@ -1,0 +1,19 @@
+{
+  "generatedAt": "2026-05-31T09:40:26.167Z",
+  "apiBaseUrl": "https://web-api.qurankemenag.net",
+  "requestLimit": 50,
+  "requestedSurahStart": 1,
+  "requestedSurahEnd": 1,
+  "completeness": {
+    "expectedCount": 7,
+    "actualCount": 7,
+    "missingKeys": [],
+    "duplicateKeys": [],
+    "extraKeys": [],
+    "isComplete": true
+  },
+  "outputs": {
+    "allAyahs": "data/all-ayahs.json",
+    "byJuz": "data/by-juz"
+  }
+}

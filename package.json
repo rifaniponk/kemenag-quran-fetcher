@@ -1,0 +1,14 @@
+{
+  "name": "kemenag-quran-fetcher",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch": "node scripts/fetch-kemenag.js",
+    "validate": "node scripts/validate-against-quran-com.js",
+    "smoke": "KEMENAG_SURAH_START=1 KEMENAG_SURAH_END=1 node scripts/fetch-kemenag.js && node scripts/validate-against-quran-com.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
