@@ -1,5 +1,6 @@
 {
   "name": "kemenag-quran-fetcher",
+  "description": "Script untuk mengambil data ayat Al-Qur'an dari https://quran.kemenag.go.id/, menyimpan seluruh field respons mentah, mengurutkannya per juz, dan memvalidasinya terhadap Quran.com.",
   "version": "0.1.0",
   "private": true,
   "type": "module",
