@@ -323,6 +323,20 @@ npm run validate:deep
 
 Quran.com responses are cached under `data/.cache/quran-com/` so repeated deep validations skip re-fetching unchanged surahs.
 
+## Continuous Integration
+
+GitHub Actions runs deep validation on every push to `main` or `feat/**` branches and on pull requests targeting `main`.
+
+Workflow: `.github/workflows/validate.yml`
+
+```bash
+npm run ci
+```
+
+The job validates the committed dataset in `data/all-ayahs.json` for the surah range recorded in its `meta` fields (currently the smoke dataset: surah 1 only). When the full Qur'an is committed, the same workflow deep-validates all 6236 ayahs without changes to the pipeline.
+
+If validation fails, the workflow uploads `data/validation-report.json` as an artifact for debugging.
+
 ## Production Note
 
 This endpoint is used by the official Qur'an Kemenag web app. Direct access can return `403 Forbidden` unless requests include browser style headers. For a production app, prefer an approved token or permission flow from Kemenag or LPMQ, then call the API through your backend.
