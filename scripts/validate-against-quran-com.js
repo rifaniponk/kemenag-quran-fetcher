@@ -104,6 +104,8 @@ function buildSummary(report) {
       textSkippedCount: report.quranCom.deep.textSkippedCount,
       textMismatchCount: report.quranCom.deep.textMismatchCount,
       metadataMismatchCount: report.quranCom.deep.metadataMismatchCount,
+      allAyahsText: report.quranCom.deep.allAyahsText,
+      juzText: report.quranCom.deep.juzText,
     };
   }
 
@@ -170,7 +172,7 @@ async function main() {
       startSurah,
       endSurah,
     );
-    report.quranCom = compareAgainstQuranCom({
+    report.quranCom = await compareAgainstQuranCom({
       localAyahs: scopedAyahs,
       quranComVersesByKey,
       startSurah,

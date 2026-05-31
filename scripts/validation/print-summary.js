@@ -58,6 +58,16 @@ export function printValidationSummary(report, reportPath) {
       textDetail.push(`${deep.textSkippedCount} text skipped`);
     }
 
+    if (deep.allAyahsText) {
+      textDetail.push(
+        `all-ayahs ${deep.allAyahsText.textMismatchCount} mismatches`,
+      );
+    }
+
+    if (deep.juzText) {
+      textDetail.push(`by-juz ${deep.juzText.textMismatchCount} mismatches`);
+    }
+
     lines.push(`  deep:            ${formatLayerStatus(deep.pass)} (${textDetail.join(', ')})`);
   }
 

@@ -88,7 +88,64 @@ export function relaxedNormalizeArabic(text) {
     .replace(OPTIONAL_MEDIAL_YAA, '');
 }
 
+export function arabicSimilarity(left, right) {
+  const normalizedLeft = relaxedNormalizeArabic(left);
+  const normalizedRight = relaxedNormalizeArabic(right);
+  const maxLength = Math.max(normalizedLeft.length, normalizedRight.length);
+
+  if (maxLength === 0) {
+    return 1;
+  }
+
+  const distance = levenshteinDistance(normalizedLeft, normalizedRight);
+  return 1 - distance / maxLength;
+}
+
+function levenshteinDistance(left, right) {
+  const leftLength = left.length;
+  const rightLength = right.length;
+  const matrix = Array.from({ length: leftLength + 1 }, () =>
+    Array(rightLength + 1).fill(0),
+  );
+
+  for (let index = 0; index <= leftLength; index += 1) {
+    matrix[index][0] = index;
+  }
+
+  for (let index = 0; index <= rightLength; index += 1) {
+    matrix[0][index] = index;
+  }
+
+  for (let row = 1; row <= leftLength; row += 1) {
+    for (let column = 1; column <= rightLength; column += 1) {
+      const substitutionCost = left[row - 1] === right[column - 1] ? 0 : 1;
+      matrix[row][column] = Math.min(
+        matrix[row - 1][column] + 1,
+        matrix[row][column - 1] + 1,
+        matrix[row - 1][column - 1] + substitutionCost,
+      );
+    }
+  }
+
+  return matrix[leftLength][rightLength];
+}
+
+function relaxedLengthRatio(left, right) {
+  const leftLength = relaxedNormalizeArabic(left).length;
+  const rightLength = relaxedNormalizeArabic(right).length;
+
+  if (rightLength === 0) {
+    return leftLength === 0 ? 1 : Number.POSITIVE_INFINITY;
+  }
+
+  return leftLength / rightLength;
+}
+
 export function arabicTextsEquivalent(localText, referenceTexts) {
+  if (typeof localText !== 'string' || localText.length === 0) {
+    return false;
+  }
+
   const localStrict = normalizeArabic(localText);
   const localRelaxed = relaxedNormalizeArabic(localText);
 
@@ -97,9 +154,19 @@ export function arabicTextsEquivalent(localText, referenceTexts) {
       return false;
     }
 
-    return (
+    if (
       localStrict === normalizeArabic(referenceText) ||
       localRelaxed === relaxedNormalizeArabic(referenceText)
-    );
+    ) {
+      return true;
+    }
+
+    const lengthRatio = relaxedLengthRatio(localText, referenceText);
+
+    if (lengthRatio < 0.85 || lengthRatio > 1.15) {
+      return false;
+    }
+
+    return arabicSimilarity(localText, referenceText) >= 0.9;
   });
 }
