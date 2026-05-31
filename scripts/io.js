@@ -11,6 +11,7 @@ export const byJuzDir = path.join(dataDir, 'by-juz');
 export const allAyahsPath = path.join(dataDir, 'all-ayahs.json');
 export const manifestPath = path.join(dataDir, 'manifest.json');
 export const validationReportPath = path.join(dataDir, 'validation-report.json');
+export const quranComCacheDir = path.join(dataDir, '.cache', 'quran-com');
 
 export async function ensureDataDirectories() {
   await mkdir(byJuzDir, { recursive: true });

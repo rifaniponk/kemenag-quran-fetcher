@@ -5,121 +5,183 @@ import {
   validationReportPath,
   writeJson,
 } from './io.js';
+import {
+  loadManifestIfPresent,
+  validateCrossFileConsistency,
+  validateJuzBoundaries,
+} from './validation/cross-file.js';
+import { validateInternalIntegrity } from './validation/internal.js';
+import {
+  parseValidationArgs,
+  printValidationHelp,
+} from './validation/parse-args.js';
+import { compareAgainstQuranCom } from './validation/quran-com-compare.js';
+import {
+  fetchQuranComVersesForRange,
+  getQuranComBaseUrl,
+} from './validation/quran-com-client.js';
 
-const quranComBaseUrl =
-  process.env.QURAN_COM_API_BASE_URL ?? 'https://api.quran.com/api/v4';
+function getRequestedRange(localPayload, options) {
+  if (options.surah !== null) {
+    return { startSurah: options.surah, endSurah: options.surah };
+  }
 
-function verseKeyFromKemenagAyah(ayah) {
-  return `${ayah.surah_id}:${ayah.ayah}`;
-}
-
-function getRequestedRange(localPayload) {
   return {
     startSurah: localPayload.meta?.requestedSurahStart ?? 1,
     endSurah: localPayload.meta?.requestedSurahEnd ?? 114,
   };
 }
 
-function findDuplicateKeys(keys) {
-  const seen = new Set();
-  const duplicates = new Set();
-
-  for (const key of keys) {
-    if (seen.has(key)) {
-      duplicates.add(key);
-    }
-
-    seen.add(key);
-  }
-
-  return [...duplicates];
-}
-
-async function fetchQuranComVerseKeysForSurah(surah) {
-  const url = new URL('/api/v4/quran/verses/uthmani', quranComBaseUrl);
-  url.searchParams.set('chapter_number', String(surah));
-
-  const response = await fetch(url);
-  const responseText = await response.text();
-
-  if (!response.ok) {
-    throw new Error(
-      `Quran.com request failed with HTTP ${response.status}: ${responseText.slice(0, 300)}`,
-    );
-  }
-
-  const payload = JSON.parse(responseText);
-  const verses = Array.isArray(payload.verses) ? payload.verses : [];
-
-  return verses.map((verse) => verse.verse_key);
-}
-
-async function fetchQuranComVerseKeys(startSurah, endSurah) {
-  const keys = [];
-
-  for (let surah = startSurah; surah <= endSurah; surah += 1) {
-    const surahKeys = await fetchQuranComVerseKeysForSurah(surah);
-    keys.push(...surahKeys);
-    console.log(`Loaded Quran.com surah ${surah}: ${surahKeys.length} keys`);
-  }
-
-  return keys;
-}
-
-function compareKeys(localKeys, quranComKeys, expectedKeys) {
-  const localSet = new Set(localKeys);
-  const quranComSet = new Set(quranComKeys);
-  const expectedSet = new Set(expectedKeys);
-
-  return {
-    counts: {
-      local: localKeys.length,
-      quranCom: quranComKeys.length,
-      expected: expectedKeys.length,
-    },
-    localMissingFromQuranCom: quranComKeys.filter((key) => !localSet.has(key)),
-    localExtraAgainstQuranCom: localKeys.filter((key) => !quranComSet.has(key)),
-    localMissingFromStaticExpected: expectedKeys.filter((key) => !localSet.has(key)),
-    localExtraAgainstStaticExpected: localKeys.filter((key) => !expectedSet.has(key)),
-    localDuplicateKeys: findDuplicateKeys(localKeys),
-    quranComDuplicateKeys: findDuplicateKeys(quranComKeys),
-  };
-}
-
-function isReportPassing(report) {
-  return (
-    report.localMissingFromQuranCom.length === 0 &&
-    report.localExtraAgainstQuranCom.length === 0 &&
-    report.localMissingFromStaticExpected.length === 0 &&
-    report.localExtraAgainstStaticExpected.length === 0 &&
-    report.localDuplicateKeys.length === 0 &&
-    report.quranComDuplicateKeys.length === 0
+function filterAyahsForRange(ayahs, startSurah, endSurah) {
+  return ayahs.filter(
+    (ayah) => ayah.surah_id >= startSurah && ayah.surah_id <= endSurah,
   );
 }
 
-async function main() {
-  const localPayload = await readJson(allAyahsPath);
-  const localData = Array.isArray(localPayload.data) ? localPayload.data : [];
-  const { startSurah, endSurah } = getRequestedRange(localPayload);
-  const localKeys = localData.map(verseKeyFromKemenagAyah);
-  const quranComKeys = await fetchQuranComVerseKeys(startSurah, endSurah);
-  const expectedKeys = expectedVerseKeysForRange(startSurah, endSurah);
-  const comparison = compareKeys(localKeys, quranComKeys, expectedKeys);
-  const pass = isReportPassing(comparison);
+function buildModes(options) {
+  const modes = [];
 
+  if (options.internal) {
+    modes.push('internal', 'crossFile', 'juzBoundaries');
+  }
+
+  if (options.keys) {
+    modes.push('keys');
+  }
+
+  if (options.deep) {
+    modes.push('deep');
+  }
+
+  if (options.offline) {
+    return ['internal', 'crossFile', 'juzBoundaries'];
+  }
+
+  return modes;
+}
+
+function buildSummary(report) {
+  const summary = {};
+
+  if (report.internal) {
+    summary.internal = {
+      pass: report.internal.pass,
+      issueCount: report.internal.issueCount,
+    };
+  }
+
+  if (report.crossFile) {
+    summary.crossFile = {
+      pass: report.crossFile.pass,
+      issueCount: report.crossFile.issueCount,
+    };
+  }
+
+  if (report.juzBoundaries) {
+    summary.juzBoundaries = {
+      pass: report.juzBoundaries.pass,
+      issueCount: report.juzBoundaries.issueCount,
+    };
+  }
+
+  if (report.quranCom?.keys) {
+    summary.keys = {
+      pass: report.quranCom.keys.pass,
+      issueCount:
+        report.quranCom.keys.localMissingFromQuranCom.length +
+        report.quranCom.keys.localExtraAgainstQuranCom.length +
+        report.quranCom.keys.localMissingFromStaticExpected.length +
+        report.quranCom.keys.localExtraAgainstStaticExpected.length +
+        report.quranCom.keys.localDuplicateKeys.length,
+    };
+  }
+
+  if (report.quranCom?.deep) {
+    summary.deep = {
+      pass: report.quranCom.deep.pass,
+      textMismatchCount: report.quranCom.deep.textMismatchCount,
+      metadataMismatchCount: report.quranCom.deep.metadataMismatchCount,
+    };
+  }
+
+  return summary;
+}
+
+function isReportPassing(report) {
+  const sections = [
+    report.internal,
+    report.crossFile,
+    report.juzBoundaries,
+    report.quranCom?.keys,
+    report.quranCom?.deep,
+  ].filter(Boolean);
+
+  return sections.every((section) => section.pass);
+}
+
+async function main() {
+  const options = parseValidationArgs();
+
+  if (options.help) {
+    printValidationHelp();
+    return;
+  }
+
+  const localPayload = await readJson(allAyahsPath);
+  const allAyahs = Array.isArray(localPayload.data) ? localPayload.data : [];
+  const { startSurah, endSurah } = getRequestedRange(localPayload, options);
+  const scopedAyahs = filterAyahsForRange(allAyahs, startSurah, endSurah);
+  const modes = buildModes(options);
   const report = {
     generatedAt: new Date().toISOString(),
-    quranComBaseUrl,
+    modes,
+    quranComBaseUrl: getQuranComBaseUrl(),
     localFile: allAyahsPath,
     requestedSurahStart: startSurah,
     requestedSurahEnd: endSurah,
-    pass,
-    comparison,
+    scopedAyahCount: scopedAyahs.length,
+    expectedAyahCount: expectedVerseKeysForRange(startSurah, endSurah).length,
   };
+
+  if (options.internal) {
+    console.log('Running internal integrity checks...');
+    report.internal = validateInternalIntegrity({
+      ayahs: scopedAyahs,
+      startSurah,
+      endSurah,
+    });
+
+    const manifest = await loadManifestIfPresent();
+    console.log('Running cross-file consistency checks...');
+    report.crossFile = await validateCrossFileConsistency(scopedAyahs, manifest);
+
+    console.log('Running juz boundary checks...');
+    report.juzBoundaries = validateJuzBoundaries(scopedAyahs);
+  }
+
+  if (options.keys || options.deep) {
+    console.log(
+      `Fetching Quran.com data for surah ${startSurah} to ${endSurah}...`,
+    );
+    const quranComVersesByKey = await fetchQuranComVersesForRange(
+      startSurah,
+      endSurah,
+    );
+    report.quranCom = compareAgainstQuranCom({
+      localAyahs: scopedAyahs,
+      quranComVersesByKey,
+      startSurah,
+      endSurah,
+      deep: options.deep,
+    });
+  }
+
+  report.summary = buildSummary(report);
+  report.pass = isReportPassing(report);
 
   await writeJson(validationReportPath, report);
 
-  if (!pass) {
+  if (!report.pass) {
     console.error(`Validation failed. See ${validationReportPath}`);
     process.exitCode = 1;
     return;

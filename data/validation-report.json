@@ -1,21 +1,123 @@
 {
-  "generatedAt": "2026-05-31T09:40:26.659Z",
+  "generatedAt": "2026-05-31T09:50:20.180Z",
+  "modes": [
+    "internal",
+    "crossFile",
+    "juzBoundaries",
+    "keys",
+    "deep"
+  ],
   "quranComBaseUrl": "https://api.quran.com/api/v4",
   "localFile": "/Users/rifanfauzi/projects/surah-planner/research/kemenag-quran-fetcher/data/all-ayahs.json",
   "requestedSurahStart": 1,
   "requestedSurahEnd": 1,
-  "pass": true,
-  "comparison": {
-    "counts": {
-      "local": 7,
-      "quranCom": 7,
-      "expected": 7
+  "scopedAyahCount": 7,
+  "expectedAyahCount": 7,
+  "internal": {
+    "pass": true,
+    "issueCount": 0,
+    "duplicateKeys": [],
+    "issues": {
+      "items": [],
+      "total": 0,
+      "truncated": false
+    }
+  },
+  "crossFile": {
+    "pass": true,
+    "issueCount": 0,
+    "juzUnionCount": 7,
+    "allAyahsCount": 7,
+    "juzComparisons": [
+      {
+        "juz": 1,
+        "ayahCount": 7,
+        "duplicateKeys": []
+      }
+    ],
+    "issues": {
+      "items": [],
+      "total": 0,
+      "truncated": false
+    }
+  },
+  "juzBoundaries": {
+    "pass": true,
+    "issueCount": 0,
+    "issues": {
+      "items": [],
+      "total": 0,
+      "truncated": false
+    }
+  },
+  "quranCom": {
+    "pass": true,
+    "keys": {
+      "pass": true,
+      "counts": {
+        "local": 7,
+        "quranCom": 7,
+        "expected": 7
+      },
+      "localMissingFromQuranCom": [],
+      "localExtraAgainstQuranCom": [],
+      "localMissingFromStaticExpected": [],
+      "localExtraAgainstStaticExpected": [],
+      "localDuplicateKeys": [],
+      "quranComDuplicateKeys": [],
+      "surahReports": {
+        "1": {
+          "pass": true,
+          "expected": 7,
+          "local": 7,
+          "quranCom": 7,
+          "missingFromQuranCom": [],
+          "extraAgainstQuranCom": [],
+          "missingFromExpected": [],
+          "extraAgainstExpected": [],
+          "textMismatchCount": 0,
+          "metadataMismatchCount": 0
+        }
+      }
     },
-    "localMissingFromQuranCom": [],
-    "localExtraAgainstQuranCom": [],
-    "localMissingFromStaticExpected": [],
-    "localExtraAgainstStaticExpected": [],
-    "localDuplicateKeys": [],
-    "quranComDuplicateKeys": []
-  }
+    "deep": {
+      "pass": true,
+      "textMismatchCount": 0,
+      "metadataMismatchCount": 0,
+      "textMismatches": {
+        "items": [],
+        "total": 0,
+        "truncated": false
+      },
+      "metadataMismatches": {
+        "items": [],
+        "total": 0,
+        "truncated": false
+      }
+    }
+  },
+  "summary": {
+    "internal": {
+      "pass": true,
+      "issueCount": 0
+    },
+    "crossFile": {
+      "pass": true,
+      "issueCount": 0
+    },
+    "juzBoundaries": {
+      "pass": true,
+      "issueCount": 0
+    },
+    "keys": {
+      "pass": true,
+      "issueCount": 0
+    },
+    "deep": {
+      "pass": true,
+      "textMismatchCount": 0,
+      "metadataMismatchCount": 0
+    }
+  },
+  "pass": true
 }
