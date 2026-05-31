@@ -15,6 +15,7 @@ import {
   parseValidationArgs,
   printValidationHelp,
 } from './validation/parse-args.js';
+import { printValidationSummary } from './validation/print-summary.js';
 import { compareAgainstQuranCom } from './validation/quran-com-compare.js';
 import {
   fetchQuranComVersesForRange,
@@ -99,6 +100,8 @@ function buildSummary(report) {
   if (report.quranCom?.deep) {
     summary.deep = {
       pass: report.quranCom.deep.pass,
+      textCheckedCount: report.quranCom.deep.textCheckedCount,
+      textSkippedCount: report.quranCom.deep.textSkippedCount,
       textMismatchCount: report.quranCom.deep.textMismatchCount,
       metadataMismatchCount: report.quranCom.deep.metadataMismatchCount,
     };
@@ -181,13 +184,12 @@ async function main() {
 
   await writeJson(validationReportPath, report);
 
+  printValidationSummary(report, validationReportPath);
+
   if (!report.pass) {
-    console.error(`Validation failed. See ${validationReportPath}`);
     process.exitCode = 1;
     return;
   }
-
-  console.log(`Validation passed. See ${validationReportPath}`);
 }
 
 main().catch((error) => {

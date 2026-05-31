@@ -1,7 +1,7 @@
 {
   "meta": {
     "source": "https://web-api.qurankemenag.net/quran-ayah",
-    "generatedAt": "2026-05-31T10:02:41.429Z",
+    "generatedAt": "2026-05-31T10:08:46.406Z",
     "juz": 23,
     "ayahCount": 363,
     "sortOrder": "juz, page, surah_id, ayah"
