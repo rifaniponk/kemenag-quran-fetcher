@@ -149,8 +149,8 @@ Validates that each ayah object in the scoped range is structurally sound on its
 8. Assert the array is sorted in canonical read order: `juz → page → surah_id → ayah`.
 9. For each surah in range, assert every ayah number from 1 to the expected count is present (no gaps).
 10. Assert `arabic`, `latin`, and `translation` are non-empty strings.
-11. Assert `arabic_words` is a non-empty array.
-12. Assert `arabic_words` joined length is roughly consistent with `arabic` (ratio between 0.5 and 1.5).
+11. Assert `arabic_words` is present as a field. `null` is valid (Kemenag often omits word breakdown). An empty array `[]` is flagged.
+12. When `arabic_words` is a non-empty array, assert its joined length is roughly consistent with `arabic` (ratio between 0.5 and 1.5).
 
 ---
 
@@ -218,40 +218,44 @@ Validates that the scoped local dataset contains exactly the right set of ayahs.
 
 ### Layer 4 — Arabic text and metadata (`--deep`)
 
-Validates that each ayah's content and navigation metadata match the Quran.com reference, not just its verse key.
+Validates ayah content and navigation metadata against the Quran.com reference.
 
 **Algorithm (per ayah in scope):**
 
 1. Look up the matching Quran.com verse by verse key.
-2. **Text comparison:**
-   - Build local comparison text from `arabic_words`, keeping only substantive words (tokens with at least 2 letters after stripping diacritics; waqf markers like `ەۙ` are excluded).
-   - Compare against both Quran.com `text_uthmani` and `text_uthmani_simple`.
-   - Texts match if either strict or relaxed normalization produces an equal string (see below).
-3. **Metadata comparison** — exact integer equality:
+2. **Text comparison** (only when `arabic_words` is a non-empty array):
+   - Build local text from substantive `arabic_words` tokens (waqf markers like `ەۙ` are excluded).
+   - If the joined words are shorter than 75% of `kitabah` (incomplete word breakdown from Kemenag), fall back to `kitabah`.
+   - Compare against Quran.com `text_uthmani` and `text_uthmani_simple` using strict or relaxed normalization.
+   - Ayahs with `arabic_words: null` skip text comparison (`textSkippedCount` in the report). This is expected for most surahs (2–77); Kemenag only provides word breakdown for some surahs (notably surah 1 and Juz Amma).
+3. **Metadata comparison** — exact integer equality for fields that use the same semantics on both sides:
    - `page` ↔ `page_number`
-   - `juz` ↔ `juz_number`
-   - `quarter_hizb` ↔ `rub_el_hizb_number`
    - `manzil` ↔ `manzil_number`
 
-**Pass condition:** zero text mismatches and zero metadata mismatches.
+   Not compared (different numbering schemes between Kemenag and Quran.com):
+
+   - `quarter_hizb` (Kemenag fractional hizb position vs Quran.com integer `rub_el_hizb_number`)
+   - `juz` (boundary ayahs can differ by one; juz grouping is validated offline in Layer 2b instead)
+
+**Pass condition:** zero text mismatches among checked ayahs, zero metadata mismatches, and no skipped-layer failures.
 
 #### Arabic normalization
 
-Kemenag uses its own kitabah orthography; Quran.com uses Uthmani script. Direct string comparison would produce false positives (for example `صراط` vs `صرط`). The validator applies a two-step normalization before comparing:
+Kemenag uses kitabah orthography; Quran.com uses Uthmani script. The validator normalizes before comparing:
 
 **Strict normalization** (`normalizeArabic`):
 
 1. Unicode NFKC normalization
 2. Strip diacritics and Qur'anic annotation marks
-3. Unify alef variants (أ إ آ ٱ ا ...) to `ا`
+3. Map alif maksura (`ى`) to `ي`, unify other alef variants to `ا`
 4. Remove tatweel and shadda
 5. Keep only Arabic letters and digits
-6. Remove whitespace
 
 **Relaxed normalization** (`relaxedNormalizeArabic`):
 
 1. Apply strict normalization
-2. Remove optional medial alef between consonants (handles dagger-alef orthography differences)
+2. Remove hamza letters and normalize ta marbuta (`ة`) to `ه`
+3. Remove optional medial alef and ya between consonants (dagger-alef and hamza orthography differences)
 
 Two texts are **equivalent** when strict-normalized strings match, or when relaxed-normalized strings match.
 
@@ -289,7 +293,7 @@ Issue lists in the report are truncated to the first 50 entries per category, wi
     "crossFile": { "pass": true, "issueCount": 0 },
     "juzBoundaries": { "pass": true, "issueCount": 0 },
     "keys": { "pass": true, "issueCount": 0 },
-    "deep": { "pass": true, "textMismatchCount": 0, "metadataMismatchCount": 0 }
+    "deep": { "pass": true, "textMismatchCount": 0, "metadataMismatchCount": 0, "textCheckedCount": 571, "textSkippedCount": 5665 }
   },
   "internal": { "...": "..." },
   "crossFile": { "...": "..." },

@@ -212,8 +212,12 @@ function validateNonEmptyContent(ayahs) {
       }
     }
 
-    if (!Array.isArray(ayah.arabic_words) || ayah.arabic_words.length === 0) {
-      issues.push({ verseKey: key, type: 'emptyArabicWords' });
+    if ('arabic_words' in ayah && ayah.arabic_words !== null) {
+      if (!Array.isArray(ayah.arabic_words)) {
+        issues.push({ verseKey: key, type: 'invalidArabicWords' });
+      } else if (ayah.arabic_words.length === 0) {
+        issues.push({ verseKey: key, type: 'emptyArabicWords' });
+      }
     }
   }
 

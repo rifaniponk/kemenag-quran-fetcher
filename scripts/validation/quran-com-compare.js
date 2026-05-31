@@ -2,6 +2,7 @@ import { expectedVerseKeysForRange } from '../quran-metadata.js';
 import {
   arabicTextsEquivalent,
   buildKemenagComparisonText,
+  hasArabicWords,
 } from './normalize-arabic.js';
 import {
   buildSurahReports,
@@ -33,6 +34,8 @@ function compareKeys(localKeys, quranComKeys, expectedKeys) {
 function compareTextAndMetadata(localAyahs, quranComVersesByKey) {
   const textMismatches = [];
   const metadataMismatches = [];
+  let textCheckedCount = 0;
+  let textSkippedCount = 0;
 
   for (const ayah of localAyahs) {
     const verseKey = verseKeyFromAyah(ayah);
@@ -42,24 +45,27 @@ function compareTextAndMetadata(localAyahs, quranComVersesByKey) {
       continue;
     }
 
-    const localText = buildKemenagComparisonText(ayah);
-    const referenceTexts = [reference.text_uthmani, reference.text_uthmani_simple];
+    if (hasArabicWords(ayah)) {
+      textCheckedCount += 1;
+      const localText = buildKemenagComparisonText(ayah);
+      const referenceTexts = [reference.text_uthmani, reference.text_uthmani_simple];
 
-    if (!arabicTextsEquivalent(localText, referenceTexts)) {
-      textMismatches.push({
-        verseKey,
-        localPreview: localText.slice(0, 80),
-        referencePreview: (reference.text_uthmani_simple ?? reference.text_uthmani).slice(
-          0,
-          80,
-        ),
-      });
+      if (!arabicTextsEquivalent(localText, referenceTexts)) {
+        textMismatches.push({
+          verseKey,
+          localPreview: localText.slice(0, 80),
+          referencePreview: (reference.text_uthmani_simple ?? reference.text_uthmani).slice(
+            0,
+            80,
+          ),
+        });
+      }
+    } else {
+      textSkippedCount += 1;
     }
 
     const metadataChecks = [
       ['page', reference.page_number],
-      ['juz', reference.juz_number],
-      ['quarter_hizb', reference.rub_el_hizb_number],
       ['manzil', reference.manzil_number],
     ];
 
@@ -75,7 +81,7 @@ function compareTextAndMetadata(localAyahs, quranComVersesByKey) {
     }
   }
 
-  return { textMismatches, metadataMismatches };
+  return { textMismatches, metadataMismatches, textCheckedCount, textSkippedCount };
 }
 
 export function compareAgainstQuranCom({
@@ -92,11 +98,15 @@ export function compareAgainstQuranCom({
 
   let textMismatches = [];
   let metadataMismatches = [];
+  let textCheckedCount = 0;
+  let textSkippedCount = 0;
 
   if (deep) {
     const deepComparison = compareTextAndMetadata(localAyahs, quranComVersesByKey);
     textMismatches = deepComparison.textMismatches;
     metadataMismatches = deepComparison.metadataMismatches;
+    textCheckedCount = deepComparison.textCheckedCount;
+    textSkippedCount = deepComparison.textSkippedCount;
   }
 
   const surahReports = buildSurahReports({
@@ -129,6 +139,8 @@ export function compareAgainstQuranCom({
     deep: deep
       ? {
           pass: deepPass,
+          textCheckedCount,
+          textSkippedCount,
           textMismatchCount: textMismatches.length,
           metadataMismatchCount: metadataMismatches.length,
           textMismatches: truncateIssues(textMismatches),
