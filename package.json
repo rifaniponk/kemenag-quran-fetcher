@@ -7,7 +7,11 @@
   "scripts": {
     "fetch": "node scripts/fetch-kemenag.js",
     "validate": "node scripts/validate-against-quran-com.js",
-    "smoke": "KEMENAG_SURAH_START=1 KEMENAG_SURAH_END=1 node scripts/fetch-kemenag.js && node scripts/validate-against-quran-com.js"
+    "validate:internal": "node scripts/validate-against-quran-com.js --internal",
+    "validate:deep": "node scripts/validate-against-quran-com.js --deep",
+    "validate:offline": "node scripts/validate-against-quran-com.js --offline",
+    "ci": "node scripts/validate-against-quran-com.js --deep",
+    "smoke": "KEMENAG_SURAH_START=1 KEMENAG_SURAH_END=1 node scripts/fetch-kemenag.js && node scripts/validate-against-quran-com.js --deep"
   },
   "engines": {
     "node": ">=18"

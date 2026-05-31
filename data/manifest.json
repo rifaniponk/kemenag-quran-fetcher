@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-31T09:40:26.167Z",
+  "generatedAt": "2026-05-31T10:08:46.406Z",
   "apiBaseUrl": "https://web-api.qurankemenag.net",
   "requestLimit": 50,
   "requestedSurahStart": 1,
-  "requestedSurahEnd": 1,
+  "requestedSurahEnd": 114,
   "completeness": {
-    "expectedCount": 7,
-    "actualCount": 7,
+    "expectedCount": 6236,
+    "actualCount": 6236,
     "missingKeys": [],
     "duplicateKeys": [],
     "extraKeys": [],
