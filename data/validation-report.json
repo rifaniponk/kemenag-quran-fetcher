@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-31T09:50:20.180Z",
+  "generatedAt": "2026-05-31T10:01:42.491Z",
   "modes": [
     "internal",
     "crossFile",
@@ -82,6 +82,8 @@
     },
     "deep": {
       "pass": true,
+      "textCheckedCount": 7,
+      "textSkippedCount": 0,
       "textMismatchCount": 0,
       "metadataMismatchCount": 0,
       "textMismatches": {
