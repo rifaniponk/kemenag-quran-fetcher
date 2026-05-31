@@ -19,9 +19,60 @@ function validateJuzFileDuplicates(juz, juzAyahs) {
   };
 }
 
+const CROSS_FILE_AYAH_FIELDS = [
+  'id',
+  'surah_id',
+  'ayah',
+  'page',
+  'quarter_hizb',
+  'juz',
+  'manzil',
+  'arabic',
+  'kitabah',
+  'latin',
+  'translation',
+];
+
+function buildAyahsByKey(ayahs) {
+  const byKey = new Map();
+
+  for (const ayah of ayahs) {
+    byKey.set(verseKeyFromAyah(ayah), ayah);
+  }
+
+  return byKey;
+}
+
+function compareAyahPayload(localAyah, referenceAyah) {
+  const verseKey = verseKeyFromAyah(localAyah);
+  const mismatchedFields = [];
+
+  for (const field of CROSS_FILE_AYAH_FIELDS) {
+    if (localAyah[field] !== referenceAyah[field]) {
+      mismatchedFields.push(field);
+    }
+  }
+
+  if (localAyah.surah?.id !== referenceAyah.surah?.id) {
+    mismatchedFields.push('surah.id');
+  }
+
+  if (mismatchedFields.length === 0) {
+    return null;
+  }
+
+  return {
+    type: 'juzPayloadMismatch',
+    verseKey,
+    juz: localAyah.juz,
+    fields: mismatchedFields,
+  };
+}
+
 export async function validateCrossFileConsistency(allAyahs, manifest) {
   const issues = [];
   const juzComparisons = [];
+  const allAyahsByKey = buildAyahsByKey(allAyahs);
   const allKeys = allAyahs.map(verseKeyFromAyah);
   const allKeySet = new Set(allKeys);
   const juzUnionKeys = new Set();
@@ -56,6 +107,18 @@ export async function validateCrossFileConsistency(allAyahs, manifest) {
           fileJuz: juz,
           ayahJuz: ayah.juz,
         });
+      }
+
+      const referenceAyah = allAyahsByKey.get(key);
+
+      if (!referenceAyah) {
+        continue;
+      }
+
+      const payloadIssue = compareAyahPayload(ayah, referenceAyah);
+
+      if (payloadIssue) {
+        issues.push(payloadIssue);
       }
     }
 

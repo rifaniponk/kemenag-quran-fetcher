@@ -1,15 +1,14 @@
 import { expectedVerseKeysForRange } from '../quran-metadata.js';
 import {
-  arabicTextsEquivalent,
-  buildKemenagComparisonText,
-  hasArabicWords,
-} from './normalize-arabic.js';
-import {
   buildSurahReports,
   findDuplicateKeys,
   truncateIssues,
   verseKeyFromAyah,
 } from './shared.js';
+import {
+  compareJuzFilesTextAgainstQuranCom,
+  compareLocalAyahsTextAgainstQuranCom,
+} from './quran-com-text.js';
 
 function compareKeys(localKeys, quranComKeys, expectedKeys) {
   const localSet = new Set(localKeys);
@@ -31,11 +30,8 @@ function compareKeys(localKeys, quranComKeys, expectedKeys) {
   };
 }
 
-function compareTextAndMetadata(localAyahs, quranComVersesByKey) {
-  const textMismatches = [];
+function compareMetadata(localAyahs, quranComVersesByKey) {
   const metadataMismatches = [];
-  let textCheckedCount = 0;
-  let textSkippedCount = 0;
 
   for (const ayah of localAyahs) {
     const verseKey = verseKeyFromAyah(ayah);
@@ -43,25 +39,6 @@ function compareTextAndMetadata(localAyahs, quranComVersesByKey) {
 
     if (!reference) {
       continue;
-    }
-
-    if (hasArabicWords(ayah)) {
-      textCheckedCount += 1;
-      const localText = buildKemenagComparisonText(ayah);
-      const referenceTexts = [reference.text_uthmani, reference.text_uthmani_simple];
-
-      if (!arabicTextsEquivalent(localText, referenceTexts)) {
-        textMismatches.push({
-          verseKey,
-          localPreview: localText.slice(0, 80),
-          referencePreview: (reference.text_uthmani_simple ?? reference.text_uthmani).slice(
-            0,
-            80,
-          ),
-        });
-      }
-    } else {
-      textSkippedCount += 1;
     }
 
     const metadataChecks = [
@@ -81,10 +58,10 @@ function compareTextAndMetadata(localAyahs, quranComVersesByKey) {
     }
   }
 
-  return { textMismatches, metadataMismatches, textCheckedCount, textSkippedCount };
+  return metadataMismatches;
 }
 
-export function compareAgainstQuranCom({
+export async function compareAgainstQuranCom({
   localAyahs,
   quranComVersesByKey,
   startSurah,
@@ -100,13 +77,27 @@ export function compareAgainstQuranCom({
   let metadataMismatches = [];
   let textCheckedCount = 0;
   let textSkippedCount = 0;
+  let localTextComparison = null;
+  let juzTextComparison = null;
 
   if (deep) {
-    const deepComparison = compareTextAndMetadata(localAyahs, quranComVersesByKey);
-    textMismatches = deepComparison.textMismatches;
-    metadataMismatches = deepComparison.metadataMismatches;
-    textCheckedCount = deepComparison.textCheckedCount;
-    textSkippedCount = deepComparison.textSkippedCount;
+    localTextComparison = compareLocalAyahsTextAgainstQuranCom(
+      localAyahs,
+      quranComVersesByKey,
+    );
+    juzTextComparison = await compareJuzFilesTextAgainstQuranCom(
+      quranComVersesByKey,
+    );
+
+    textMismatches = [
+      ...localTextComparison.textMismatches,
+      ...juzTextComparison.textMismatches,
+    ];
+    metadataMismatches = compareMetadata(localAyahs, quranComVersesByKey);
+    textCheckedCount =
+      localTextComparison.textCheckedCount + juzTextComparison.textCheckedCount;
+    textSkippedCount =
+      localTextComparison.textSkippedCount + juzTextComparison.textSkippedCount;
   }
 
   const surahReports = buildSurahReports({
@@ -115,7 +106,7 @@ export function compareAgainstQuranCom({
     localKeys,
     quranComKeys,
     expectedKeys,
-    textMismatches,
+    textMismatches: localTextComparison?.textMismatches ?? [],
     metadataMismatches,
   });
 
@@ -127,7 +118,9 @@ export function compareAgainstQuranCom({
     keys.localDuplicateKeys.length === 0 &&
     keys.quranComDuplicateKeys.length === 0;
 
-  const deepPass = !deep || (textMismatches.length === 0 && metadataMismatches.length === 0);
+  const deepPass =
+    !deep ||
+    (textMismatches.length === 0 && metadataMismatches.length === 0);
 
   return {
     pass: keysPass && deepPass,
@@ -145,6 +138,24 @@ export function compareAgainstQuranCom({
           metadataMismatchCount: metadataMismatches.length,
           textMismatches: truncateIssues(textMismatches),
           metadataMismatches: truncateIssues(metadataMismatches),
+          allAyahsText: localTextComparison
+            ? {
+                pass: localTextComparison.textMismatches.length === 0,
+                textCheckedCount: localTextComparison.textCheckedCount,
+                textSkippedCount: localTextComparison.textSkippedCount,
+                textMismatchCount: localTextComparison.textMismatches.length,
+                textMismatches: truncateIssues(localTextComparison.textMismatches),
+              }
+            : null,
+          juzText: juzTextComparison
+            ? {
+                pass: juzTextComparison.textMismatches.length === 0,
+                textCheckedCount: juzTextComparison.textCheckedCount,
+                textSkippedCount: juzTextComparison.textSkippedCount,
+                textMismatchCount: juzTextComparison.textMismatches.length,
+                textMismatches: truncateIssues(juzTextComparison.textMismatches),
+              }
+            : null,
         }
       : null,
   };

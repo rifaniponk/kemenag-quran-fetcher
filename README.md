@@ -166,10 +166,11 @@ Validates that the fetch output files agree with each other.
    - Assert every ayah in the file has `ayah.juz === N` (the file's juz number).
    - Collect duplicate verse keys within the file.
 3. Build the union of all verse keys across juz files.
-4. Compare the juz union against `all-ayahs.json`:
+4. For each ayah in every juz file, compare its payload fields against the matching ayah in `all-ayahs.json` (`id`, `arabic`, `kitabah`, `latin`, `translation`, metadata fields). Verse key presence alone is not enough.
+5. Compare the juz union against `all-ayahs.json`:
    - Fail on keys present in juz files but missing from `all-ayahs.json`.
    - Fail on keys present in `all-ayahs.json` but missing from the juz union.
-5. If `data/manifest.json` exists, assert:
+6. If `data/manifest.json` exists, assert:
    - `completeness.expectedCount === all-ayahs count`
    - `completeness.actualCount === all-ayahs count`
    - `completeness.isComplete === true`
@@ -223,11 +224,13 @@ Validates ayah content and navigation metadata against the Quran.com reference.
 **Algorithm (per ayah in scope):**
 
 1. Look up the matching Quran.com verse by verse key.
-2. **Text comparison** (only when `arabic_words` is a non-empty array):
-   - Build local text from substantive `arabic_words` tokens (waqf markers like `ەۙ` are excluded).
-   - If the joined words are shorter than 75% of `kitabah` (incomplete word breakdown from Kemenag), fall back to `kitabah`.
-   - Compare against Quran.com `text_uthmani` and `text_uthmani_simple` using strict or relaxed normalization.
-   - Ayahs with `arabic_words: null` skip text comparison (`textSkippedCount` in the report). This is expected for most surahs (2–77); Kemenag only provides word breakdown for some surahs (notably surah 1 and Juz Amma).
+2. **Text comparison** for every ayah that has comparable Arabic text (all 6236 ayahs when data is complete):
+   - Build local text from substantive `arabic_words` tokens when present (waqf markers like `ەۙ` are excluded).
+   - If `arabic_words` is missing or the joined words are shorter than 75% of `kitabah`, fall back to `kitabah`.
+   - Compare against Quran.com `text_uthmani` and `text_uthmani_simple` using strict normalization, relaxed normalization, or fuzzy similarity (≥ 90% Levenshtein on relaxed text with length ratio 0.85–1.15) to tolerate kitabah vs Uthmani orthography differences.
+   - Run the comparison twice in deep mode:
+     - **`all-ayahs.json`** — canonical merged dataset
+     - **`data/by-juz/juz-*.json`** — each juz file independently (catches corruption that only exists in by-juz exports)
 3. **Metadata comparison** — exact integer equality for fields that use the same semantics on both sides:
    - `page` ↔ `page_number`
    - `manzil` ↔ `manzil_number`
@@ -257,7 +260,7 @@ Kemenag uses kitabah orthography; Quran.com uses Uthmani script. The validator n
 2. Remove hamza letters and normalize ta marbuta (`ة`) to `ه`
 3. Remove optional medial alef and ya between consonants (dagger-alef and hamza orthography differences)
 
-Two texts are **equivalent** when strict-normalized strings match, or when relaxed-normalized strings match.
+Two texts are **equivalent** when strict-normalized strings match, relaxed-normalized strings match, or fuzzy similarity on relaxed text is ≥ 90% with length ratio between 0.85 and 1.15.
 
 ---
 
